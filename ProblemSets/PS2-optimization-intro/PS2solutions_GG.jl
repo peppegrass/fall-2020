@@ -20,39 +20,94 @@ readdir() # GG: equivalent to -ls- to see elements of working directory
 
 function allwrap()
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
-    # question 1
+    # Question 1
+    # Basic [# GG: NON-LINEAR] optimization in Julia
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
-    f(x) = -x[1]^4-10x[1]^3-2x[1]^2-3x[1]-2
-    minusf(x) = x[1]^4+10x[1]^3+2x[1]^2+3x[1]+2
+
+    #=
+    GG: We will use Julia’s Optim package, which is a function MINIMIZER.
+    Thus, if we want to ﬁnd the maximum of f(x), we need to minimize −f(x).
+    GG: Run code below in REPL to see how Optim works
+    =#
+
+    f(x) = -x[1]^4-10x[1]^3-2x[1]^2-3x[1]-2 # GG: original objective function
+    minusf(x) = x[1]^4+10x[1]^3+2x[1]^2+3x[1]+2 # GG: -(obj fct)
     startval = rand(1)   # random starting value
-    result = optimize(minusf, startval, BFGS())
+    #=
+    GG: The Optim package provides a function called optimize(). This function requires three inputs:
+    the objective function, a starting value, and an optimization algorithm.
+    We will not get too deep into optimization algorithms in this course, but for now just use LBFGS().
+    =#
+    result = optimize(minusf, startval, BFGS()) # GG: BFGS is a gradient-based algorithm: objective function needs to be differentiable for this to work; otherwise, use different algorithm
     println(result)
 
-    #:::::::::::::::::::::::::::::::::::::::::::::::::::
-    # question 2
-    #:::::::::::::::::::::::::::::::::::::::::::::::::::
-    url = "https://raw.githubusercontent.com/OU-PhD-Econometrics/fall-2020/master/ProblemSets/PS1-julia-intro/nlsw88.csv"
-    df = CSV.read(HTTP.get(url).body)
-    X = [ones(size(df,1),1) df.age df.race.==1 df.collgrad.==1]
-    y = df.married.==1
+    #=
+    GG: Look at the measures of convergence in the result:
+    3 different criteria when doing non-linear optimization. Metaphor: climing a mountain and looking at ALTITUDE & LATITUDE/LONGITUDE
+    1. Look at g(x): Most intuitive and common one: is the gradient 0 [necessary condition: FOC]?
+    2. Look at |f(x) - f(x')|: Since the last iteration of this procedure (with the first iteration being originally based on the starting value), how much has the FUNCTION VALUE changed (i.e. has the ALTITUDE changed) between the previous or current iteration? Is there evidence for the slope not being at zero?
+    3. Look at |x - x'|: How far did I step from the last iteration to this iteration, i.e. how did the value x (current) change wrt to x' (previous)? How much did LATITUDE/LONGITUDE change
+        # GG: gradient 1. is the most important and also hardest to satisfy
+        Tolerance values/thresholds can be set for gradient (gtol/gval), function (ftol/fval) and value (xtol/xval); e.g. e-06 as opposed to e-08
+    =#
 
-    function ols(beta, X, y)
-        ssr = (y.-X*beta)'*(y.-X*beta)
+    #:::::::::::::::::::::::::::::::::::::::::::::::::::
+    # Question 2
+    # Now that we’re familiar with how Optim’s optimize() function works, lets try it on some real-world data.
+    # Speciﬁcally, let’s use Optim to compute OLS estimates of a simple linear regression using actual data.
+    # The process for passing data to Optim can be tricky, so it will be helpful to go through this example.
+    # First, let’s import and set up the data. Note that you will need to put the URL all on one line when executing this code in Julia.
+    #:::::::::::::::::::::::::::::::::::::::::::::::::::
+    url = "https://raw.githubusercontent.com/OU-PhD-Econometrics/fall-2020/master/ProblemSets/PS1-julia-intro/nlsw88.csv" # GG: setting URL
+    df = CSV.read(HTTP.get(url).body) # GG: reading CSV from URL
+    X = [ones(size(df,1),1) df.age df.race.==1 df.collgrad.==1] # GG: subset of variables that will be used in regression
+    y = df.married.==1 # GG: copying variable married from DataFrame df into array y
+    # GG: By applying OLS to a binary choice model we are estimating a Linear Probability Model (LPM)
+
+    # GG: OLS is minimizer of Sum of Squared Errors (SSR) so we write down the objective function
+    function ols(beta, X, y) # GG: argument you are optimizing over has to come first in Optim; others (data) can come later
+        ssr = (y.-X*beta)'*(y.-X*beta) # GG: one way of writing it (.- is called loop fusion; should be the most efficient)
+        #= ssr = dot(y.-X*beta,y.-X*beta) Julia function dot() that takes dot product (an alternative) =#
+        #= ssr = [sum[y[i]-X[i,:]*beta]^2 for i in 1:length(y)] (yet another alternative by comprehension; might contain mistakes; pseudo-code) =#
+        #=  ssr = 0
+            for i=1:length(y)
+                ssr += (y[i]-X[i,:]*beta)^2
+            end
+        (yet another alternative using a loop; += is an operator to do iterations)
+        =#
         return ssr
     end
 
     beta_hat_ols = optimize(b -> ols(b, X, y), rand(size(X,2)), LBFGS(), Optim.Options(g_tol=1e-6, iterations=100_000, show_trace=true))
-    println(beta_hat_ols.minimizer)
+    #= GG:
+    - In exercise 1 we simply used optimize(minusf, ., .) because we had a univariate function of x
+    Now here we got 3 arguments and we need to tell Julia that we are optimizing over b by using the following synthax
+    optimize(b -> ols(b, X, y), ...)
+    - rand(size(X,2)) are starting value which must have the same dimension as the parameter vector (or dim covariate vector including the constant)
+    - LBFGS() is the algorithm chosen
+    - Setting a few options through Optim.Options(g_tol=1e-6, iterations=100_000, show_trace=true)
+        - tolerance value for gradient; capping number of iterations at 100k; show_trace=true prints out in the REPL what's happening at every step
+    =#
 
+    println(beta_hat_ols.minimizer) # GG: prints the output
+
+    # GG: Since OLS has a closed form solution, we can check that this worked in a few different ways:
+    # 1. by evaluating the known OLS closed form
     bols = inv(X'*X)*X'*y
     println(bols)
-    df.white = df.race.==1
-    bols_lm = lm(@formula(married ~ age + white + collgrad), df)
+    # 2. by using the GLS package; very similar to R
+    df.white = df.race.==1 # GG: Creating a dummy white for race==1
+    bols_lm = lm(@formula(married ~ age + white + collgrad), df) # GG: like in R, once you tell where data is coming from, you can just use varnames stata-style
     println(bols_lm)
+    # GG: It can be easily verified that all three solutions are the same
 
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
-    # question 3
+    # Question 3
+    # Use Optim to estimate the logit likelihood. Some things to keep in mind:
+    #   To maximize the likelihood, you will need to pass Optim the negative of the likelihood function
+    #   The likelihood function is included in the Lecture 4 slides
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
+
     function logit(alpha, X, y)
 
         P = exp.(X*alpha)./(1 .+ exp.(X*alpha))
