@@ -265,6 +265,12 @@ function q4()
     return nothing
 end
 
+
+#=
+h. Wrap a function deﬁnition around all of the code for question 4. Call the function q4().
+The function should have no inputs or outputs. At the very bottom of your script you should add the code q4().
+=#
+
 # Call the functions defined above
 A,B,C,D = q1()
 q2(A,B,C)
