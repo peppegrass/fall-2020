@@ -1,4 +1,8 @@
-# problem set 2 solutions
+#=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=#
+# Problem set 2 solutions
+# Written by Tyler Ransom
+# Commented by Giuseppe Grasso
+#=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=#
 
 using Random
 using LinearAlgebra
@@ -10,6 +14,9 @@ using HTTP
 using GLM
 using FreqTables
 using ForwardDiff # for bonus at the very end
+cd("/Users/peppegrass/Documents/GitHub/fall-2020/ProblemSets/PS1-julia-intro/") # GG: sets working directory
+pwd() ## GG: prints working directory
+readdir() # GG: equivalent to -ls- to see elements of working directory
 
 function allwrap()
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -81,7 +88,7 @@ function allwrap()
     y = df.occupation
 
     function mlogit(alpha, X, y)
-        
+
         K = size(X,2)
         J = length(unique(y))
         N = length(y)
@@ -90,18 +97,18 @@ function allwrap()
             bigY[:,j] = y.==j
         end
         bigAlpha = [reshape(alpha,K,J-1) zeros(K)]
-        
+
         num = zeros(N,J)
         dem = zeros(N)
         for j=1:J
             num[:,j] = exp.(X*bigAlpha[:,j])
             dem .+= num[:,j]
         end
-        
+
         P = num./repeat(dem,1,J)
-        
+
         loglike = -sum( bigY.*log.(P) )
-        
+
         return loglike
     end
 
@@ -113,15 +120,15 @@ function allwrap()
     alpha_hat_optim = optimize(a -> mlogit(a, X, y), alpha_start, LBFGS(), Optim.Options(g_tol = 1e-5, iterations=100_000, show_trace=true, show_every=50))
     alpha_hat_mle = alpha_hat_optim.minimizer
     println(alpha_hat_mle)
-    
-    
+
+
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
     # bonus: how to get standard errors?
     # need to obtain the hessian of the obj fun
     #:::::::::::::::::::::::::::::::::::::::::::::::::::
     # first, we need to slightly modify our objective function
     function mlogit_for_h(alpha, X, y)
-        
+
         K = size(X,2)
         J = length(unique(y))
         N = length(y)
@@ -130,7 +137,7 @@ function allwrap()
             bigY[:,j] = y.==j
         end
         bigAlpha = [reshape(alpha,K,J-1) zeros(K)]
-        
+
         T = promote_type(eltype(X),eltype(alpha)) # this line is new
         num   = zeros(T,N,J)                      # this line is new
         dem   = zeros(T,N)                        # this line is new
@@ -138,11 +145,11 @@ function allwrap()
             num[:,j] = exp.(X*bigAlpha[:,j])
             dem .+= num[:,j]
         end
-        
+
         P = num./repeat(dem,1,J)
-        
+
         loglike = -sum( bigY.*log.(P) )
-        
+
         return loglike
     end
 
