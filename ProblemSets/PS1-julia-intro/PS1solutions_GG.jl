@@ -171,70 +171,97 @@ At the very bottom of your script you should add the code q2(A,B,C). Make sure q
 =#
 
 #:::::::::::::::::::::::::::::::::::::::::::::::::::
-# question 3
+# Question 3
+# Reading in Data and calculating summary statistics
 #:::::::::::::::::::::::::::::::::::::::::::::::::::
 
 function q3()
-    # a.
-    nlsw88 = CSV.read("nlsw88.csv")
-    save("nlsw88.jld","nlsw88",nlsw88)
+    ## a. Clear the workspace and import the ﬁle nlsw88.csv into Julia as a DataFrame.
+    ## Make sure you appropriately convert missing values and variable names. Save the result as nlsw88.jld.
+    nlsw88 = CSV.read("nlsw88.csv") # GG: kinda -import csv-
+    save("nlsw88.jld","nlsw88",nlsw88) # GG: kinda -save-
 
-    # b.
-    mean(nlsw88.never_married)
+    ## b. What percentage of the sample has never been married? What percentage are college graduates?
+    mean(nlsw88.never_married) # GG: kinda -summarize- but just returning the mean
     mean(nlsw88.collgrad)
 
-    # c.
-    freqtable(nlsw88, :race)
+    ## c. Use the tabulate command to report what percentage of the sample is in each race category
+    freqtable(nlsw88, :race) # GG: oneway -tabulate race-; gotta have that colon to work though
 
-    # d.
+    ## d. Use the describe() function to create a matrix called summarystats which lists the mean, median,
+    ## standard deviation, min, max, number of unique elements, and interquartile range (75th percentile minus
+    ## 25th percentile) of the data frame. How many grade observations are missing?
     summarystats = describe(nlsw88)
+    #=
+    GG: to see how many grade observation are missing you gotta visualize all rows using
+    show(summarystats, allrows=true)
+    see https://juliadata.github.io/DataFrames.jl/stable/man/getting_started/
+    =#
 
-    # e.
-    freqtable(nlsw88, :industry, :occupation)
+    ## e. Show the joint distribution of industry and occupation using a cross-tabulation.
+    freqtable(nlsw88, :industry, :occupation) # GG: twoway tabulate
 
-    # f.
-    wageonly = nlsw88[:,[:industry,:occupation,:wage]]
-    grouper = groupby(wageonly, [:industry,:occupation])
-    combine(grouper, valuecols(grouper) .=> mean)
+    ## f. Tabulate the mean wage over industry and occupation categories.
+    ## Hint: you should ﬁrst subset the data frame to only include the columns industry, occupation and wage.
+    ## You should then follow the “split-apply-combine” directions here.
+    wageonly = nlsw88[:,[:industry,:occupation,:wage]] # GG: [SPLIT] creating a sub-dataframe from nlsw88
+    grouper = groupby(wageonly, [:industry,:occupation]) # GG: [APPLY] created a GroupedDataFrame whereby observations are grouped, e.g. 12 observations/rows with industry=5 and occupation=6
+    combine(grouper, valuecols(grouper) .=> mean) # GG: [COMBINE] essentially "collapsing" to means by groups defined in previous step
     return nothing
 end
 
+#=
+g. Wrap a function deﬁnition around all of the code for question 3. Call the function q3().
+The function should have no inputs and no outputs. At the very bottom of your script you should add the code q3().
+=#
+
 #:::::::::::::::::::::::::::::::::::::::::::::::::::
-# question 4
+# Question 4
+# Practice with functions
 #:::::::::::::::::::::::::::::::::::::::::::::::::::
 
 function q4()
-    # a.
-    mats = load("firstmatrix.jld")
-    A = mats["A"]
+    ## a. Load firstmatrix.jld.
+    mats = load("firstmatrix.jld") # GG: loads .jld file in dictionary "mats"
+    A = mats["A"] # GG: creating/extracting array from "mats"
     B = mats["B"]
     C = mats["C"]
     D = mats["D"]
 
-    # b.
-    function matrixops(m1,m2)
-        # c.
-        # this function computes the following matrix formulas: i) element-wise multiplication; ii) transpose multiplication; iii) sum of the elementwise product
-        # e.
+    ## b. Write a function called matrixops that takes as inputs the matrices A and B from question (a) of problem 1 and has
+    ## three outputs: (i) the element-by-element product of the inputs, (ii) the product A ′ B, and (iii) the sum of all the
+    ## elements of A+B.
+    function matrixops(m1,m2) # GG: defining function matrixops to have two argumets/inputs
+        ## c. Starting on line 2 of the function, write a comment that explains what matrixops does.
+        ## this function computes the following matrix formulas: i) element-wise multiplication; ii) transpose multiplication; iii) sum of the elementwise product
+
+        ## e. Just before the ﬁrst executable line of matrixops.m (i.e. right after the ﬁrst-line comments),
+        ## write an if statement which gives an error if the two inputs are not the same size. Have the error say “inputs must have the same size.”
         if size(m1)!=size(m2)
-            error("inputs must have the same size.")
+            error("inputs must have the same size.") # GG: creating an error which stops function if matrices aren't the same size (needed for element-wise multiplication)
         end
         ret1 = m1.*m2
-        ret2 = m1'*m2
+        ret2 = m1'*m2 # GG: '* is operator for transpose multiplication
         ret3 = sum(m1+m2)
         return ret1,ret2,ret3
     end
 
-    # d.
-    matrixops(A,B)
+    ## d. Evaluate [GG: the returns one-ny-one in the REPL and the function itself] matrixops() using A and B from question (a) of problem 1
+    matrixops(A,B) # GG: everything goes fine
 
-    # f.
-    # matrixops(C,D)
+    ## f. Evaluate matrixops.m using C and D from question (a) of problem 1. What happens?
+    # matrixops(C,D) # GG: since C and D aren't the same size the programmed error is raised
 
-    # g.
+    ## g. Now evaluate matrixops.m using ttl_exp and wage from nlsw88.jld.
+    ## Hint: before doing this, you will need to convert the data frame columns to Arrays.
+    ## e.g. convert(Array,nlsw88.ttl_exp), depending on what you called the data frame object [I called it nlsw88].
+    #= GG: Two lines below actually not working. Apparently, it has to do with the conversion that are purported to do next...
     mat1 = load("nlsw88.jld")
     nlsw88 = mat1["nlsw88"]
-    matrixops(convert(Array,nlsw88.ttl_exp),convert(Array,nlsw88.wage))
+    ... Instead a re-import from the CSV and create the DataFrame from scratch
+    =#
+    nlsw88 = CSV.read("nlsw88.csv",DataFrame;) # GG: nlsw88 = CSV.read("nlsw88.csv") would work to but appears to be deprecated in favour of the one used
+    matrixops(convert(Array,nlsw88.ttl_exp),convert(Array,nlsw88.wage)) # GG: evaluating matrixops() on the converted versions of nlsw88.ttl_exp and nlsw88.wage
     return nothing
 end
 
