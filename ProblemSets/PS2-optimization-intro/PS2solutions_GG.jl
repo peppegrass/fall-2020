@@ -14,7 +14,7 @@ using HTTP
 using GLM
 using FreqTables
 using ForwardDiff # for bonus at the very end
-cd("/Users/peppegrass/Documents/GitHub/fall-2020/ProblemSets/PS1-julia-intro/") # GG: sets working directory
+cd("/Users/peppegrass/Documents/GitHub/fall-2020/ProblemSets/PS2-optimization-intro/") # GG: sets working directory
 pwd() ## GG: prints working directory
 readdir() # GG: equivalent to -ls- to see elements of working directory
 
