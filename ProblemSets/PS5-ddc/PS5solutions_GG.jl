@@ -94,7 +94,7 @@ function allwrap()
 Now I will walk you through how to estimate the DYNAMIC version of this model using BACKWARDS RECURSION.
 With discount factor β, the DIFFERENTIATED CONDITIONAL VALUE FUNCTION for running the bus (relative to replacing it) is
 
-(2): $ v_{1t}(x_{t},b) - v_{0t}(x_{t},) =
+(2): $ v_{1t}(x_{t},b) - v_{0t}(x_{t},b) =
         θ_{0} + θ_{1}x_{1t} + θ_{2}b                    [GG: same as static so far, flow utility]
         + β ∫ V_{t+1}(x_{t+1}, b) dF(x_{t+1} | x_{t})     [GG: recursive component]
         $
